@@ -108,11 +108,33 @@
     const weather = document.getElementById('detailWeather');
     weather.replaceChildren();
     const values = region.hasWeather
-      ? [`Rajada máxima: ${region.gustKmh} km/h`, `Chuva horária: ${region.precipMmH} mm`, `Chuva em 24 horas: ${region.precip24hMm} mm`]
+      ? [
+        `Fator IPMA: ${region.factors.warning}/100`,
+        `Fator vento: ${region.factors.wind}/100`,
+        `Fator precipitação: ${region.factors.rain}/100`,
+        `Rajada máxima: ${region.gustKmh} km/h`,
+        `Chuva horária: ${region.precipMmH} mm`,
+        `Chuva em 24 horas: ${region.precip24hMm} mm`,
+      ]
       : ['Dados meteorológicos indisponíveis'];
     for (const value of values) weather.append(html('div', value));
     const cities = document.getElementById('detailCities');
     cities.replaceChildren(html('strong', 'Principais cidades'), html('span', CITIES[region.id] ?? region.name));
+    const warnings = document.getElementById('detailWarnings');
+    warnings.replaceChildren();
+    warnings.append(html('strong', 'Avisos IPMA'));
+    if (region.warnings.length === 0) {
+      warnings.append(html('div', 'Sem aviso ativo para este distrito.'));
+    } else {
+      for (const warning of region.warnings) {
+        const item = html('div');
+        item.className = 'warning-item';
+        const start = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(warning.start));
+        const end = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(warning.end));
+        item.append(html('b', `${warning.type} · ${warning.level.toUpperCase()}`), document.createTextNode(` · ${start} — ${end}`));
+        warnings.append(item);
+      }
+    }
     document.getElementById('districtDetail').classList.add('is-visible');
   }
 

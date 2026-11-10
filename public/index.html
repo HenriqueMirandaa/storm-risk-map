@@ -46,7 +46,7 @@
     .foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; line-height: 1.55; }
     .foot a { color: var(--muted); }
     .map-wrap { position: relative; width: 100vw; height: 100vh; background: var(--paper); }
-    #map { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+    #map { display: block; width: 100%; height: 100%; transform: scaleY(1.12); transform-origin: center; touch-action: none; user-select: none; }
     .district { cursor: pointer; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .2s ease, stroke .2s ease, opacity .2s ease; }
     .district:hover { stroke: var(--ink); stroke-width: 2; filter: brightness(1.16); }
     .menu-toggle {
@@ -72,12 +72,18 @@
     .detail-grid strong { color: var(--ink); font-weight: 500; }
     .detail-cities { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
     .detail-cities strong { display: block; margin-bottom: 3px; color: var(--ink); font-weight: 500; }
+    .detail-warnings { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .detail-warnings strong { display: block; margin-bottom: 6px; color: var(--ink); font-weight: 500; }
+    .warning-item + .warning-item { margin-top: 7px; }
+    .warning-item b { color: var(--ink); font-weight: 500; }
     @media (max-width: 700px) {
-      aside { width: min(360px, calc(100vw - 24px)); padding: 24px 20px 18px; }
+      aside { width: 100%; max-width: none; padding: 22px 18px 16px; }
       h1 { font-size: 36px; }
       .menu-toggle { top: 12px; right: 12px; }
       .zoom-control { bottom: 16px; left: 16px; }
-      .district-detail { right: 16px; bottom: 16px; left: 16px; width: auto; }
+      .map-wrap, #map { height: 100svh; }
+      #map { transform: scaleY(1.06); }
+      .district-detail { right: 12px; bottom: 12px; left: 12px; width: auto; max-height: 44svh; overflow-y: auto; }
     }
   </style>
 </head>
@@ -116,6 +122,7 @@
       <div class="detail-score" id="detailScore"></div>
       <div class="detail-grid" id="detailWeather"></div>
       <div class="detail-cities" id="detailCities"></div>
+      <div class="detail-warnings" id="detailWarnings"></div>
     </section>
   </main>
   <script src="app.js"></script>
