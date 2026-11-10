@@ -7,17 +7,17 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
-      --paper: #f5f6f3;
-      --panel: #fbfcfa;
-      --ink: #17212b;
-      --muted: #64707a;
-      --faint: #8c969d;
-      --line: #d9dedb;
-      --accent: #c36b2d;
-      --low: #277c59;
-      --moderate: #ae7a16;
-      --high: #c45c29;
-      --extreme: #a93535;
+      --paper: #0e0f0d;
+      --panel: #111310;
+      --ink: #f2f1ea;
+      --muted: #a7a89f;
+      --faint: #73766e;
+      --line: #2b2d28;
+      --accent: #b84f6d;
+      --low: #5a9079;
+      --moderate: #d1ad35;
+      --high: #d2765f;
+      --extreme: #c7465d;
     }
 
     * { box-sizing: border-box; }
@@ -27,7 +27,7 @@
       grid-template-columns: 360px minmax(0, 1fr);
       background: var(--paper);
       color: var(--ink);
-      font: 14px/1.45 Arial, "Helvetica Neue", sans-serif;
+      font: 14px/1.45 Inter, Arial, sans-serif;
     }
     aside {
       z-index: 2;
@@ -79,7 +79,7 @@
       margin: 0 0 16px;
       padding: 12px 14px;
       border-left: 3px solid var(--accent);
-      background: #f3eee8;
+      background: #191417;
     }
     .storm.on { display: block; }
     .storm .sub { margin: 0 0 2px; color: var(--accent); font-size: 11px; }
@@ -141,7 +141,7 @@
       grid-column: 1 / 3;
       height: 3px;
       margin-top: 4px;
-      background: #e6e9e7;
+      background: #20231f;
       border-radius: 2px;
       overflow: hidden;
     }
@@ -162,8 +162,8 @@
       line-height: 1.55;
     }
     .foot a { color: var(--muted); }
-    .map-wrap { position: relative; min-width: 0; }
-    #map { height: 100%; min-height: 100vh; background: #dfe5e2; }
+    .map-wrap { position: relative; min-width: 0; background: var(--paper); }
+    #map { height: 100%; min-height: 100vh; background: var(--paper); }
     .map-header {
       position: absolute;
       z-index: 500;
@@ -171,10 +171,10 @@
       left: 20px;
       max-width: 320px;
       padding: 12px 14px;
-      background: rgba(251, 252, 250, .96);
+      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(23, 33, 43, .08);
+      box-shadow: none;
     }
     .map-header strong { display: block; font-size: 13px; font-weight: 600; }
     .map-header span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
@@ -185,6 +185,26 @@
     }
     .leaflet-popup-content { min-width: 210px; font: 13px/1.5 Arial, sans-serif; }
     .leaflet-popup-content b { font-size: 15px; font-weight: 600; }
+    .wind-layer { position: absolute; z-index: 450; pointer-events: none; }
+    .wind-toggle {
+      position: absolute;
+      z-index: 500;
+      right: 20px;
+      bottom: 20px;
+      padding: 10px 14px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: #0e0f0d;
+      background: var(--accent);
+      cursor: pointer;
+      font: 600 11px/1 Inter, Arial, sans-serif;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+    .wind-toggle:hover, .wind-toggle:focus-visible { color: var(--ink); background: transparent; outline: none; }
+    .wind-toggle:active { transform: scale(.98); }
+    .wind-toggle.is-off { color: var(--muted); border-color: var(--line); background: var(--panel); }
     @media (max-width: 800px) {
       body { display: flex; flex-direction: column; }
       .map-wrap { order: 1; height: 52vh; }
@@ -219,11 +239,12 @@
     </section>
     <div class="foot">
       Indicador experimental. Não substitui os avisos oficiais do <a href="https://www.ipma.pt/" target="_blank" rel="noreferrer">IPMA</a> ou da Proteção Civil.<br />
-      Fontes: IPMA e Open-Meteo · atualização automática
+      Fontes: IPMA e Open-Meteo · geometria distrital derivada do CAOP
     </div>
   </aside>
   <main class="map-wrap">
-    <div class="map-header"><strong>Mapa de risco por distrito</strong><span>O ponto mostra a capital de distrito · toque para detalhes</span></div>
+    <div class="map-header"><strong>Portugal continental</strong><span>Distritos coloridos pelo risco · linhas mostram os limites</span></div>
+    <button class="wind-toggle" id="windToggle" type="button">Vento ativo</button>
     <div id="map" role="application" aria-label="Mapa de risco de tempestades"></div>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
