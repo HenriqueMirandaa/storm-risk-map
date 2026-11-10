@@ -1,0 +1,23 @@
+{
+  "name": "storm-risk-map",
+  "version": "0.1.0",
+  "description": "MVP de SaaS: mapa de risco de tempestades em Portugal em tempo real (IPMA + Open-Meteo)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:mock": "DATA_MODE=mock tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

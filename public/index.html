@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stormgauge — risco de tempestades em Portugal</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --paper: #f5f6f3;
+      --panel: #fbfcfa;
+      --ink: #17212b;
+      --muted: #64707a;
+      --faint: #8c969d;
+      --line: #d9dedb;
+      --accent: #c36b2d;
+      --low: #277c59;
+      --moderate: #ae7a16;
+      --high: #c45c29;
+      --extreme: #a93535;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      background: var(--paper);
+      color: var(--ink);
+      font: 14px/1.45 Arial, "Helvetica Neue", sans-serif;
+    }
+    aside {
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 28px 24px 20px;
+      overflow-y: auto;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+    }
+    .brand-mark {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      place-items: center;
+      color: var(--panel);
+      background: var(--ink);
+      border-radius: 6px;
+      font: 600 12px/1 Georgia, serif;
+    }
+    .intro { padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+    h1 {
+      max-width: 290px;
+      margin: 20px 0 8px;
+      font-size: 29px;
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+    .sub {
+      max-width: 300px;
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .storm {
+      display: none;
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--accent);
+      background: #f3eee8;
+    }
+    .storm.on { display: block; }
+    .storm .sub { margin: 0 0 2px; color: var(--accent); font-size: 11px; }
+    .storm b { font-size: 14px; font-weight: 600; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .pill::before {
+      width: 5px;
+      height: 5px;
+      margin-right: 6px;
+      content: "";
+      background: currentColor;
+      border-radius: 50%;
+    }
+    .pill.ok { color: var(--low); border-color: #b8d5c7; }
+    .pill.bad { color: var(--extreme); border-color: #e2baba; }
+    .pill.warn { color: var(--moderate); border-color: #e2d0a6; }
+    h2 {
+      margin: 0 0 10px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    ol { list-style: none; margin: 0; padding: 0; }
+    li.row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 12px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+      cursor: pointer;
+    }
+    li.row:last-child { border-bottom: 1px solid var(--line); }
+    li.row:hover, li.row:focus-visible { color: var(--accent); outline: none; }
+    .name { font-weight: 600; }
+    .meta { grid-column: 1 / 2; color: var(--muted); font-size: 12px; }
+    .badge {
+      grid-row: 1 / 3;
+      grid-column: 2;
+      align-self: center;
+      min-width: 74px;
+      color: var(--ink);
+      font: 600 12px/1 "Courier New", monospace;
+      text-align: right;
+    }
+    .badge::first-letter { color: var(--accent); }
+    .bar {
+      grid-column: 1 / 3;
+      height: 3px;
+      margin-top: 4px;
+      background: #e6e9e7;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .bar > i { display: block; height: 100%; }
+    .lvl-low { background: var(--low); }
+    .lvl-moderate { background: var(--moderate); }
+    .lvl-high { background: var(--high); }
+    .lvl-extreme { background: var(--extreme); }
+    .legend { display: grid; gap: 8px; color: var(--muted); font-size: 12px; }
+    .legend div { display: flex; align-items: center; gap: 8px; }
+    .legend span { width: 8px; height: 8px; border-radius: 50%; }
+    .foot {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .foot a { color: var(--muted); }
+    .map-wrap { position: relative; min-width: 0; }
+    #map { height: 100%; min-height: 100vh; background: #dfe5e2; }
+    .map-header {
+      position: absolute;
+      z-index: 500;
+      top: 20px;
+      left: 20px;
+      max-width: 320px;
+      padding: 12px 14px;
+      background: rgba(251, 252, 250, .96);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(23, 33, 43, .08);
+    }
+    .map-header strong { display: block; font-size: 13px; font-weight: 600; }
+    .map-header span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .leaflet-control-zoom a {
+      color: var(--ink) !important;
+      background: var(--panel) !important;
+      border-color: var(--line) !important;
+    }
+    .leaflet-popup-content { min-width: 210px; font: 13px/1.5 Arial, sans-serif; }
+    .leaflet-popup-content b { font-size: 15px; font-weight: 600; }
+    @media (max-width: 800px) {
+      body { display: flex; flex-direction: column; }
+      .map-wrap { order: 1; height: 52vh; }
+      #map { min-height: 52vh; }
+      .map-header { top: 12px; left: 12px; }
+      aside { order: 2; gap: 20px; padding: 24px 20px 18px; border-right: 0; border-top: 1px solid var(--line); }
+      h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="intro">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">S</span>Stormgauge</div>
+      <h1>Risco de tempestades em Portugal</h1>
+      <p class="sub">Uma leitura por distrito dos avisos do IPMA e da previsão de vento e chuva para as próximas 24 horas</p>
+      <div class="storm" id="storm"><span class="sub">Tempestade em acompanhamento</span><br /><b id="stormName"></b></div>
+      <div class="status" id="status"></div>
+    </div>
+    <section>
+      <h2>Distritos com maior risco</h2>
+      <ol id="ranking"></ol>
+    </section>
+    <section>
+      <h2>Escala de risco</h2>
+      <div class="legend">
+        <div><span class="lvl-low"></span>Baixo <small>0–24</small></div>
+        <div><span class="lvl-moderate"></span>Moderado <small>25–49</small></div>
+        <div><span class="lvl-high"></span>Alto <small>50–74</small></div>
+        <div><span class="lvl-extreme"></span>Extremo <small>75–100</small></div>
+      </div>
+    </section>
+    <div class="foot">
+      Indicador experimental. Não substitui os avisos oficiais do <a href="https://www.ipma.pt/" target="_blank" rel="noreferrer">IPMA</a> ou da Proteção Civil.<br />
+      Fontes: IPMA e Open-Meteo · atualização automática
+    </div>
+  </aside>
+  <main class="map-wrap">
+    <div class="map-header"><strong>Mapa de risco por distrito</strong><span>O ponto mostra a capital de distrito · toque para detalhes</span></div>
+    <div id="map" role="application" aria-label="Mapa de risco de tempestades"></div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
