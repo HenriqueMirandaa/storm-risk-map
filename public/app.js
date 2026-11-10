@@ -44,6 +44,8 @@
   let fullView = { x: 0, y: 0, w: 1000, h: 900 };
   let currentView = { ...fullView };
   let animationId = 0;
+  let panStart = null;
+  let wasDragged = false;
 
   function allCoordinates(geometry) {
     return geometry.coordinates.flat(geometry.type === 'Polygon' ? 1 : 2);
@@ -127,6 +129,7 @@
       path.setAttribute('fill-opacity', String(0.5 + region.score / 400));
       path.replaceChildren(el('title', `${region.name} — ${region.score}/100`));
       path.onclick = () => {
+        if (wasDragged) return;
         const box = featureBox(feature);
         const padding = 28;
         updateDetail(region);
@@ -185,7 +188,36 @@
   document.getElementById('zoomIn').addEventListener('click', () => zoomBy(0.8));
   document.getElementById('zoomOut').addEventListener('click', () => zoomBy(1.25));
   document.getElementById('zoomReset').addEventListener('click', () => animateView(fullView));
-  document.getElementById('detailClose').addEventListener('click', () => document.getElementById('districtDetail').classList.remove('is-visible'));
+  svg.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    panStart = { x: event.clientX, y: event.clientY, view: { ...currentView } };
+    wasDragged = false;
+    svg.setPointerCapture(event.pointerId);
+  });
+  svg.addEventListener('pointermove', (event) => {
+    if (!panStart) return;
+    const distance = Math.hypot(event.clientX - panStart.x, event.clientY - panStart.y);
+    if (distance > 4) wasDragged = true;
+    if (!wasDragged) return;
+    const rect = svg.getBoundingClientRect();
+    const scale = Math.min(rect.width / currentView.w, rect.height / currentView.h);
+    setView({
+      ...currentView,
+      x: panStart.view.x - (event.clientX - panStart.x) / scale,
+      y: panStart.view.y - (event.clientY - panStart.y) / scale,
+    });
+  });
+  const endPan = (event) => {
+    if (!panStart) return;
+    panStart = null;
+    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+  };
+  svg.addEventListener('pointerup', endPan);
+  svg.addEventListener('pointercancel', endPan);
+  document.getElementById('detailClose').addEventListener('click', () => {
+    document.getElementById('districtDetail').classList.remove('is-visible');
+    animateView(fullView);
+  });
 
   void loadDistricts();
   void refresh();
