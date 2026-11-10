@@ -89,7 +89,6 @@
         layer.bindPopup(popupFor(region));
       }
     });
-    windField.setRegions(regions);
   }
 
   function renderRanking(regions) {
@@ -143,93 +142,17 @@
     if (snapshot.mode === 'mock') box.append(pill('Simulação', 'warn'));
   }
 
-  function createWindField() {
-    const canvas = document.createElement('canvas');
-    canvas.className = 'wind-layer';
-    map.getPanes().overlayPane.appendChild(canvas);
-    const context = canvas.getContext('2d');
-    const particles = [];
-    let regions = [];
-    let active = true;
-    let width = 0;
-    let height = 0;
-
-    function resize() {
-      const rect = map.getContainer().getBoundingClientRect();
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      width = rect.width;
-      height = rect.height;
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      particles.length = 0;
-      for (let i = 0; i < 420; i += 1) {
-        particles.push({ x: Math.random() * width, y: Math.random() * height, life: Math.random() });
-      }
-    }
-
-    function setRegions(next) {
-      regions = next;
-      resize();
-    }
-
-    function frame() {
-      if (!active) {
-        context.clearRect(0, 0, width, height);
-        requestAnimationFrame(frame);
-        return;
-      }
-      const avgGust = regions.reduce((sum, region) => sum + (region.gustKmh ?? 35), 0) / Math.max(regions.length, 1);
-      context.fillStyle = 'rgba(14, 15, 13, 0.11)';
-      context.fillRect(0, 0, width, height);
-      context.lineWidth = 0.8;
-      for (const particle of particles) {
-        const oldX = particle.x;
-        const oldY = particle.y;
-        const speed = 0.55 + avgGust / 170;
-        particle.x += speed;
-        particle.y += Math.sin((particle.x + particle.y) / 110) * 0.18 - speed * 0.16;
-        particle.life -= 0.004;
-        if (particle.x > width + 10 || particle.y < -10 || particle.life <= 0) {
-          particle.x = -8;
-          particle.y = Math.random() * height;
-          particle.life = 0.6 + Math.random() * 0.4;
-        }
-        const alpha = Math.min(0.75, particle.life);
-        context.strokeStyle = `rgba(184, 79, 109, ${alpha})`;
-        context.beginPath();
-        context.moveTo(oldX, oldY);
-        context.lineTo(particle.x, particle.y);
-        context.stroke();
-      }
-      requestAnimationFrame(frame);
-    }
-
-    map.on('resize move zoom', resize);
-    resize();
-    requestAnimationFrame(frame);
-    return {
-      setRegions,
-      toggle() {
-        active = !active;
-        return active;
-      },
-    };
-  }
-
-  const windField = createWindField();
-  document.getElementById('windToggle').addEventListener('click', (event) => {
-    const active = windField.toggle();
-    event.currentTarget.textContent = active ? 'Vento ativo' : 'Mostrar vento';
-    event.currentTarget.classList.toggle('is-off', !active);
-  });
-  document.getElementById('panelToggle').addEventListener('click', (event) => {
-    const collapsed = document.body.classList.toggle('panel-collapsed');
-    event.currentTarget.textContent = collapsed ? 'Abrir' : 'Ocultar';
-    event.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+  function setPanel(open) {
+    document.body.classList.toggle('panel-collapsed', !open);
+    document.getElementById('panelToggle').textContent = open ? 'Ocultar' : 'Abrir';
+    document.getElementById('panelToggle').setAttribute('aria-expanded', String(open));
+    document.getElementById('menuToggle').textContent = open ? 'Fechar menu' : 'Menu';
+    document.getElementById('menuToggle').setAttribute('aria-expanded', String(open));
     window.setTimeout(() => map.invalidateSize(), 180);
+  }
+  document.getElementById('panelToggle').addEventListener('click', () => setPanel(false));
+  document.getElementById('menuToggle').addEventListener('click', () => {
+    setPanel(document.body.classList.contains('panel-collapsed'));
   });
 
   let last = null;

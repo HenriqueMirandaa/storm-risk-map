@@ -139,6 +139,7 @@
       padding: 10px 0;
       border-top: 1px solid var(--line);
       cursor: pointer;
+      transition: color 160ms ease, background-color 160ms ease, padding-left 160ms ease;
     }
     li.row:last-child { border-bottom: 1px solid var(--line); }
     li.row:hover, li.row:focus-visible { color: var(--accent); outline: none; }
@@ -195,19 +196,11 @@
     }
     .map-header strong { display: block; font-size: 13px; font-weight: 600; }
     .map-header span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
-    .leaflet-control-zoom a {
-      color: var(--ink) !important;
-      background: var(--panel) !important;
-      border-color: var(--line) !important;
-    }
-    .leaflet-popup-content { min-width: 210px; font: 13px/1.5 Arial, sans-serif; }
-    .leaflet-popup-content b { font-size: 15px; font-weight: 600; }
-    .wind-layer { position: absolute; z-index: 450; pointer-events: none; }
-    .wind-toggle {
+    .menu-toggle {
       position: absolute;
       z-index: 500;
+      top: 20px;
       right: 20px;
-      bottom: 20px;
       padding: 10px 14px;
       border: 1px solid var(--accent);
       border-radius: 6px;
@@ -217,31 +210,30 @@
       font: 600 11px/1 Inter, Arial, sans-serif;
       letter-spacing: .06em;
       text-transform: uppercase;
-      transition: background-color 160ms ease, color 160ms ease;
+      transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
     }
-    .wind-toggle:hover, .wind-toggle:focus-visible { color: var(--ink); background: transparent; outline: none; }
-    .wind-toggle:active { transform: scale(.98); }
-    .wind-toggle.is-off { color: var(--muted); border-color: var(--line); background: var(--panel); }
-    .panel-collapsed { grid-template-columns: minmax(0, 1fr) 56px; }
-    .panel-collapsed aside { padding: 20px 12px; }
-    .panel-collapsed aside > *:not(.intro) { display: none; }
-    .panel-collapsed .intro { border: 0; }
-    .panel-collapsed .intro > *:not(.brand) { display: none; }
-    .panel-collapsed .brand { justify-content: center; }
-    .panel-collapsed .brand-name { display: none; }
-    .panel-collapsed .panel-toggle { margin: 0; font-size: 0; }
-    .panel-collapsed .panel-toggle::after { content: "＋"; font-size: 18px; }
+    .menu-toggle:hover, .menu-toggle:focus-visible { color: var(--ink); background: transparent; outline: none; }
+    .menu-toggle:active, .panel-toggle:active { transform: scale(.97); }
+    .leaflet-control-zoom a {
+      color: var(--ink) !important;
+      background: var(--panel) !important;
+      border-color: var(--line) !important;
+    }
+    .leaflet-popup-content { min-width: 210px; font: 13px/1.5 Arial, sans-serif; }
+    .leaflet-popup-content b { font-size: 15px; font-weight: 600; }
+    aside { transform: translateX(0); opacity: 1; transition: transform 220ms cubic-bezier(.22, 1, .36, 1), opacity 180ms ease; }
+    .panel-collapsed { grid-template-columns: minmax(0, 1fr) 0px; }
+    .panel-collapsed aside { overflow: hidden; border-left: 0; opacity: 0; pointer-events: none; transform: translateX(100%); }
     @media (max-width: 800px) {
       body { display: flex; flex-direction: column; }
       .map-wrap { order: 1; height: 52vh; }
       #map { min-height: 52vh; }
       .map-header { top: 12px; left: 12px; }
+      .menu-toggle { top: 12px; right: 12px; }
       aside { order: 2; gap: 20px; padding: 24px 20px 18px; border-left: 0; border-top: 1px solid var(--line); }
       h1 { font-size: 36px; }
-      .panel-collapsed { display: flex; height: 56px; min-height: 56px; padding: 12px 20px; }
-      .panel-collapsed aside { height: 56px; }
-      .panel-collapsed .brand { justify-content: flex-start; }
-      .panel-collapsed .brand-name { display: inline; }
+      .panel-collapsed { grid-template-columns: 1fr; }
+      .panel-collapsed aside { display: none; }
     }
   </style>
 </head>
@@ -274,7 +266,7 @@
   </aside>
   <main class="map-wrap">
     <div class="map-header"><strong>Portugal continental</strong><span>Distritos coloridos pelo risco · linhas mostram os limites</span></div>
-    <button class="wind-toggle" id="windToggle" type="button">Vento ativo</button>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">Menu</button>
     <div id="map" role="application" aria-label="Mapa de risco de tempestades"></div>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
