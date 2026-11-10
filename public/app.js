@@ -73,6 +73,7 @@
     const bounds = districts.getBounds();
     map.fitBounds(bounds, { padding: [28, 28] });
     map.setMaxBounds(bounds.pad(0.12));
+    if (currentRegions.length > 0) renderMap(currentRegions);
   }
 
   let currentRegions = [];
@@ -223,6 +224,12 @@
     const active = windField.toggle();
     event.currentTarget.textContent = active ? 'Vento ativo' : 'Mostrar vento';
     event.currentTarget.classList.toggle('is-off', !active);
+  });
+  document.getElementById('panelToggle').addEventListener('click', (event) => {
+    const collapsed = document.body.classList.toggle('panel-collapsed');
+    event.currentTarget.textContent = collapsed ? 'Abrir' : 'Ocultar';
+    event.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+    window.setTimeout(() => map.invalidateSize(), 180);
   });
 
   let last = null;
