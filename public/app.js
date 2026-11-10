@@ -41,7 +41,7 @@
   let features = [];
   let latestRegions = [];
   let geoBounds = [0, 0, 0, 0];
-  let fullView = { x: 0, y: 0, w: 1000, h: 760 };
+  let fullView = { x: 0, y: 0, w: 1000, h: 900 };
   let currentView = { ...fullView };
   let animationId = 0;
 
@@ -53,7 +53,7 @@
     const [minLon, minLat, maxLon, maxLat] = geoBounds;
     return [
       40 + ((lon - minLon) / (maxLon - minLon)) * 920,
-      30 + ((maxLat - lat) / (maxLat - minLat)) * 700,
+      40 + ((maxLat - lat) / (maxLat - minLat)) * 820,
     ];
   }
 
@@ -126,14 +126,7 @@
       path.setAttribute('fill', COLORS[region.level]);
       path.setAttribute('fill-opacity', String(0.5 + region.score / 400));
       path.replaceChildren(el('title', `${region.name} — ${region.score}/100`));
-      path.onmouseenter = () => {
-        document.getElementById('hoverInfo').textContent = `${region.name} · ${region.score}/100 · ${LABELS[region.level]}`;
-      };
-      path.onmouseleave = () => {
-        document.getElementById('hoverInfo').textContent = 'Passe o rato sobre um distrito';
-      };
-      path.oncontextmenu = (event) => {
-        event.preventDefault();
+      path.onclick = () => {
         const box = featureBox(feature);
         const padding = 28;
         updateDetail(region);

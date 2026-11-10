@@ -47,7 +47,7 @@
     .foot a { color: var(--muted); }
     .map-wrap { position: relative; width: 100vw; height: 100vh; background: var(--paper); }
     #map { display: block; width: 100%; height: 100%; }
-    .district { cursor: context-menu; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .2s ease, stroke .2s ease, opacity .2s ease; }
+    .district { cursor: pointer; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .2s ease, stroke .2s ease, opacity .2s ease; }
     .district:hover { stroke: var(--ink); stroke-width: 2; filter: brightness(1.16); }
     .menu-toggle {
       position: absolute; z-index: 10; top: 20px; right: 20px; padding: 10px 14px;
@@ -57,7 +57,6 @@
     .zoom-control { position: absolute; z-index: 10; bottom: 24px; left: 24px; display: grid; gap: 4px; }
     .zoom-control button { width: 36px; height: 36px; color: var(--ink); font-size: 18px; }
     .zoom-control button:hover, .zoom-control button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
-    .hover-info { position: absolute; z-index: 10; bottom: 24px; left: 76px; color: var(--muted); font-size: 12px; pointer-events: none; }
     .district-detail {
       position: absolute; z-index: 11; left: 24px; bottom: 24px; width: 300px; padding: 18px;
       border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--panel);
@@ -78,7 +77,6 @@
       h1 { font-size: 36px; }
       .menu-toggle { top: 12px; right: 12px; }
       .zoom-control { bottom: 16px; left: 16px; }
-      .hover-info { bottom: 16px; left: 62px; }
       .district-detail { right: 16px; bottom: 16px; left: 16px; width: auto; }
     }
   </style>
@@ -88,7 +86,6 @@
     <div>
       <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span class="brand-name">Stormgauge</span><button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true">Ocultar</button></div>
       <h1>Risco de tempestades em Portugal</h1>
-      <p class="sub">Passe o rato sobre um distrito. Clique com o botão direito para ampliar e ver o detalhe meteorológico.</p>
     </div>
     <section>
       <h2>Escala de risco</h2>
@@ -106,13 +103,12 @@
   </aside>
   <main class="map-wrap">
     <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">Fechar menu</button>
-    <svg id="map" role="application" aria-label="Mapa interativo de risco de tempestades em Portugal" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid meet"></svg>
+    <svg id="map" role="application" aria-label="Mapa interativo de risco de tempestades em Portugal" viewBox="0 0 1000 900" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="zoom-control" aria-label="Zoom do mapa">
       <button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
       <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button>
       <button id="zoomReset" type="button" aria-label="Ver Portugal inteiro">⌂</button>
     </div>
-    <div class="hover-info" id="hoverInfo">Passe o rato sobre um distrito</div>
     <section class="district-detail" id="districtDetail" aria-live="polite">
       <button class="detail-close" id="detailClose" type="button" aria-label="Fechar detalhe">×</button>
       <div class="detail-kicker">Distrito selecionado</div>
