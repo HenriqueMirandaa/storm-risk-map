@@ -41,6 +41,7 @@
   let features = [];
   let latestRegions = [];
   let geoBounds = [0, 0, 0, 0];
+  let projectionScale = 1;
   let fullView = { x: 0, y: 0, w: 1000, h: 760 };
   let currentView = { ...fullView };
   let animationId = 0;
@@ -52,9 +53,10 @@
 
   function project([lon, lat]) {
     const [minLon, minLat, maxLon, maxLat] = geoBounds;
+    const meanLat = ((minLat + maxLat) / 2) * Math.PI / 180;
     return [
-      40 + ((lon - minLon) / (maxLon - minLon)) * 920,
-      30 + ((maxLat - lat) / (maxLat - minLat)) * 700,
+      40 + (lon - minLon) * Math.cos(meanLat) * projectionScale,
+      30 + (maxLat - lat) * projectionScale,
     ];
   }
 
@@ -164,6 +166,11 @@
     const lons = coords.map(([lon]) => lon);
     const lats = coords.map(([, lat]) => lat);
     geoBounds = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+    const meanLat = ((geoBounds[1] + geoBounds[3]) / 2) * Math.PI / 180;
+    projectionScale = Math.min(
+      920 / ((geoBounds[2] - geoBounds[0]) * Math.cos(meanLat)),
+      700 / (geoBounds[3] - geoBounds[1]),
+    );
     for (const feature of features) {
       const path = el('path');
       path.classList.add('district');

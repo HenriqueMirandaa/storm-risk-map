@@ -24,9 +24,7 @@
       transition: transform 240ms cubic-bezier(.22, 1, .36, 1), opacity 180ms ease;
     }
     .panel-collapsed aside { pointer-events: none; transform: translateX(100%); opacity: 0; }
-    .brand { display: flex; align-items: center; gap: 10px; font: 18px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
-    .brand-mark { display: grid; width: 24px; height: 24px; place-items: center; color: var(--panel); background: var(--ink); border-radius: 6px; font: 600 12px/1 Georgia, serif; }
-    .brand-name { white-space: nowrap; }
+    .panel-header { display: flex; justify-content: flex-end; }
     .panel-toggle, .menu-toggle, .zoom-control button, .detail-close {
       border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: var(--panel);
       cursor: pointer; font: 600 11px/1 "Space Grotesk", sans-serif; letter-spacing: .06em; text-transform: uppercase;
@@ -46,7 +44,7 @@
     .foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; line-height: 1.55; }
     .foot a { color: var(--muted); }
     .map-wrap { position: relative; width: 100vw; height: 100vh; background: var(--paper); }
-    #map { display: block; width: 100%; height: 100%; transform: scaleY(1.12); transform-origin: center; touch-action: none; user-select: none; }
+    #map { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
     .district { cursor: pointer; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .2s ease, stroke .2s ease, opacity .2s ease; }
     .district:hover { stroke: var(--ink); stroke-width: 2; filter: brightness(1.16); }
     .menu-toggle {
@@ -82,7 +80,6 @@
       .menu-toggle { top: 12px; right: 12px; }
       .zoom-control { bottom: 16px; left: 16px; }
       .map-wrap, #map { height: 100svh; }
-      #map { transform: scaleY(1.06); }
       .district-detail { right: 12px; bottom: 12px; left: 12px; width: auto; max-height: 44svh; overflow-y: auto; }
     }
   </style>
@@ -90,7 +87,7 @@
 <body>
   <aside>
     <div>
-      <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span class="brand-name">Stormgauge</span><button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true">Ocultar</button></div>
+      <div class="panel-header"><button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true">Ocultar</button></div>
       <h1>Risco de tempestades em Portugal</h1>
     </div>
     <section>
