@@ -12,7 +12,7 @@ a previsão meteorológica do Open-Meteo. Cada distrito recebe uma pontuação d
 
 As cores ajudam a interpretar o resultado: verde significa risco baixo,
 amarelo moderado, laranja alto e vermelho extremo. O mapa é atualizado
-automaticamente a cada minuto. Este indicador é apenas informativo e **não
+automaticamente a cada 3 segundos. Este indicador é apenas informativo e **não
 substitui os avisos oficiais do IPMA ou da Proteção Civil**.
 
 ## Arrancar
@@ -44,7 +44,7 @@ Com `API_KEYS=abc,def` a API exige `x-api-key` (ou `?key=`).
 ## Deploy na Vercel
 
 O deploy usa a função `/api`, que consulta o IPMA e o Open-Meteo a cada
-pedido. O navegador atualiza o mapa a cada minuto:
+pedido. O navegador atualiza o mapa a cada 3 segundos:
 
 ```bash
 npx vercel

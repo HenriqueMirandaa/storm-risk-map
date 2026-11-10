@@ -11,7 +11,6 @@
   const key = params.get('key');
   const qs = key ? `?key=${encodeURIComponent(key)}` : '';
   const map = L.map('map', { zoomControl: true, zoomSnap: 0.25 }).setView([39.6, -8.0], 6);
-  const layers = new Map();
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -19,10 +18,7 @@
     return n;
   };
   const normalize = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
-  const fmtTime = (iso) =>
-    new Date(iso).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-
-  function popupFor(r) {
+  function tooltipFor(r) {
     const box = el('div');
     box.append(el('b', '', r.name), el('div', '', `Risco ${r.score}/100 · ${LABELS[r.level]}`));
     const f = r.factors;
@@ -36,9 +32,6 @@
           : 'Sem dados do modelo meteorológico',
       ),
     );
-    for (const w of r.warnings) {
-      box.append(el('div', '', `• ${w.type} (${w.level}) ${fmtTime(w.start)} → ${fmtTime(w.end)}`));
-    }
     return box;
   }
 
@@ -54,14 +47,7 @@
   const districts = L.geoJSON(null, {
     style: () => styleFor(null),
     onEachFeature: (feature, layer) => {
-      const name = normalize(feature.properties?.Distrito ?? '');
-      layer.on('click', () => {
-        const region = [...layers.entries()].find(([, candidate]) => candidate === layer)?.[0];
-        const selected = currentRegions.find((item) => item.id === region);
-        if (selected) layer.bindPopup(popupFor(selected)).openPopup();
-      });
-      layer.bindTooltip(feature.properties?.Distrito ?? '', { sticky: true });
-      layer._districtName = name;
+      layer._districtName = normalize(feature.properties?.Distrito ?? '');
     },
   }).addTo(map);
 
@@ -76,53 +62,18 @@
     if (currentRegions.length > 0) renderMap(currentRegions);
   }
 
-  let currentRegions = [];
+  let latestRegions = [];
   function renderMap(regions) {
-    currentRegions = regions;
+    latestRegions = regions;
+    if (districts.getLayers().length === 0) return;
     const byName = new Map(regions.map((region) => [normalize(region.name), region]));
-    layers.clear();
     districts.eachLayer((layer) => {
       const region = byName.get(layer._districtName);
       if (region) {
-        layers.set(region.id, layer);
         layer.setStyle(styleFor(region));
-        layer.bindPopup(popupFor(region));
+        layer.bindTooltip(tooltipFor(region), { sticky: true, direction: 'top', className: 'district-tooltip' });
       }
     });
-  }
-
-  function renderRanking(regions) {
-    const ol = document.getElementById('ranking');
-    ol.replaceChildren();
-    for (const r of regions.slice(0, 8)) {
-      const li = el('li', 'row');
-      li.tabIndex = 0;
-      const meta = r.warnings[0]
-        ? `${r.warnings[0].type} · ${r.warnings[0].level}`
-        : r.hasWeather
-          ? `Rajada ${r.gustKmh} km/h · ${r.precipMmH} mm/h`
-          : 'Sem dados';
-      const badge = el('span', `badge lvl-${r.level}`, `${LABELS[r.level]} ${r.score}`);
-      const bar = el('div', 'bar');
-      const fill = el('i', `lvl-${r.level}`);
-      fill.style.width = `${r.score}%`;
-      bar.append(fill);
-      li.append(el('span', 'name', r.name), badge, el('span', 'meta', meta), bar);
-      const open = () => {
-        const layer = layers.get(r.id);
-        if (!layer) return;
-        map.fitBounds(layer.getBounds(), { maxZoom: 8, duration: 0.5 });
-        layer.openPopup();
-      };
-      li.addEventListener('click', open);
-      li.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          open();
-        }
-      });
-      ol.append(li);
-    }
   }
 
   function pill(text, cls) {
@@ -159,7 +110,6 @@
   function apply(snapshot) {
     last = snapshot;
     renderMap(snapshot.regions);
-    renderRanking(snapshot.regions);
     renderStatus(snapshot, true);
     const storm = document.getElementById('storm');
     storm.classList.toggle('on', Boolean(snapshot.stormName));
@@ -178,6 +128,6 @@
 
   void loadDistricts().catch(() => renderStatus(last, false));
   void refresh();
-  window.setInterval(refresh, 60_000);
+  window.setInterval(refresh, 3_000);
   renderStatus(null, false);
 })();
