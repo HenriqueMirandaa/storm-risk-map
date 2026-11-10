@@ -6,222 +6,89 @@
   <title>Stormgauge — risco de tempestades em Portugal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --paper: #0e0f0d;
-      --panel: #111310;
-      --ink: #f2f1ea;
-      --muted: #a7a89f;
-      --faint: #73766e;
-      --line: #2b2d28;
-      --accent: #b84f6d;
-      --low: #5a9079;
-      --moderate: #d1ad35;
-      --high: #d2765f;
-      --extreme: #c7465d;
+      --paper: #0e0f0d; --panel: #111310; --ink: #f2f1ea; --muted: #a7a89f;
+      --faint: #73766e; --line: #2b2d28; --accent: #b84f6d;
+      --low: #4d806a; --moderate: #c19b35; --high: #c96855; --extreme: #c7465d;
     }
-
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
-    body {
-      display: block;
-      background: var(--paper);
-      color: var(--ink);
-      font: 14px/1.45 Inter, Arial, sans-serif;
-    }
+    body { overflow: hidden; background: var(--paper); color: var(--ink); font: 14px/1.45 "Space Grotesk", sans-serif; }
     aside {
-      position: fixed;
-      z-index: 1000;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 360px;
-      max-width: calc(100vw - 24px);
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      padding: 28px 24px 20px;
-      overflow-y: auto;
-      background: var(--panel);
-      border-left: 1px solid var(--line);
+      position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; width: 360px; max-width: calc(100vw - 24px);
+      display: flex; flex-direction: column; gap: 28px; padding: 28px 24px 20px; overflow-y: auto;
+      background: var(--panel); border-left: 1px solid var(--line);
+      transform: translateX(0); opacity: 1;
+      transition: transform 240ms cubic-bezier(.22, 1, .36, 1), opacity 180ms ease;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--ink);
-      font: 18px/1 Anton, Impact, sans-serif;
-      text-transform: uppercase;
-      letter-spacing: -.02em;
-    }
+    .panel-collapsed aside { pointer-events: none; transform: translateX(100%); opacity: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font: 18px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
+    .brand-mark { display: grid; width: 24px; height: 24px; place-items: center; color: var(--panel); background: var(--ink); border-radius: 6px; font: 600 12px/1 Georgia, serif; }
     .brand-name { white-space: nowrap; }
-    .panel-toggle {
-      margin-left: auto;
-      padding: 6px 8px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      color: var(--muted);
-      background: transparent;
-      cursor: pointer;
-      font: 10px/1 Inter, Arial, sans-serif;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      transition: border-color 160ms ease, color 160ms ease;
+    .panel-toggle, .menu-toggle, .zoom-control button, .detail-close {
+      border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: var(--panel);
+      cursor: pointer; font: 600 11px/1 "Space Grotesk", sans-serif; letter-spacing: .06em; text-transform: uppercase;
+      transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
     }
-    .panel-toggle:hover, .panel-toggle:focus-visible { color: var(--ink); border-color: var(--accent); outline: none; }
-    .brand-mark {
-      display: grid;
-      width: 24px;
-      height: 24px;
-      place-items: center;
-      color: var(--panel);
-      background: var(--ink);
-      border-radius: 6px;
-      font: 600 12px/1 Georgia, serif;
-    }
-    .intro { padding-bottom: 4px; border-bottom: 1px solid var(--line); }
-    h1 {
-      max-width: 290px;
-      margin: 20px 0 8px;
-      font: 44px/.94 Anton, Impact, sans-serif;
-      letter-spacing: -.015em;
-      text-transform: uppercase;
-    }
-    .sub {
-      max-width: 300px;
-      margin: 0 0 20px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-    .storm {
-      display: none;
-      margin: 0 0 16px;
-      padding: 12px 14px;
-      border-left: 3px solid var(--accent);
-      background: #191417;
-    }
-    .storm.on { display: block; }
-    .storm .sub { margin: 0 0 2px; color: var(--accent); font-size: 11px; }
-    .storm b { font-size: 14px; font-weight: 600; }
-    .status { display: flex; flex-wrap: wrap; gap: 8px; }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 4px 8px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-    .pill::before {
-      width: 5px;
-      height: 5px;
-      margin-right: 6px;
-      content: "";
-      background: currentColor;
-      border-radius: 50%;
-    }
-    .pill.ok { color: var(--low); border-color: #b8d5c7; }
-    .pill.bad { color: var(--extreme); border-color: #e2baba; }
-    .pill.warn { color: var(--moderate); border-color: #e2d0a6; }
-    h2 {
-      margin: 0 0 10px;
-      color: var(--faint);
-      font: 16px/1 Anton, Impact, sans-serif;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    .lvl-low { background: var(--low); }
-    .lvl-moderate { background: var(--moderate); }
-    .lvl-high { background: var(--high); }
-    .lvl-extreme { background: var(--extreme); }
-    .legend { display: grid; gap: 8px; color: var(--muted); font-size: 12px; }
-    .legend div { display: flex; align-items: center; gap: 8px; }
+    .panel-toggle { margin-left: auto; padding: 6px 8px; }
+    .panel-toggle:hover, .panel-toggle:focus-visible, .detail-close:hover, .detail-close:focus-visible { color: var(--ink); border-color: var(--accent); outline: none; }
+    button:active { transform: scale(.97); }
+    h1 { max-width: 290px; margin: 24px 0 10px; font: 44px/.94 Anton, Impact, sans-serif; letter-spacing: -.015em; text-transform: uppercase; }
+    .sub { max-width: 300px; margin: 0; color: var(--muted); font: 14px/1.55 "Space Grotesk", sans-serif; }
+    h2 { margin: 0 0 12px; color: var(--faint); font: 16px/1 Anton, Impact, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .legend { display: grid; gap: 10px; color: var(--muted); font-size: 13px; }
+    .legend div { display: flex; align-items: center; gap: 9px; }
     .legend span { width: 8px; height: 8px; border-radius: 50%; }
-    .foot {
-      margin-top: auto;
-      padding-top: 16px;
-      border-top: 1px solid var(--line);
-      color: var(--faint);
-      font-size: 11px;
-      line-height: 1.55;
-    }
+    .lvl-low { background: var(--low); } .lvl-moderate { background: var(--moderate); }
+    .lvl-high { background: var(--high); } .lvl-extreme { background: var(--extreme); }
+    .foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; line-height: 1.55; }
     .foot a { color: var(--muted); }
-    .map-wrap { position: relative; min-width: 0; height: 100vh; background: var(--paper); }
-    #map { height: 100vh; background: var(--paper); }
-    .map-header {
-      position: absolute;
-      z-index: 500;
-      top: 20px;
-      left: 20px;
-      max-width: 320px;
-      padding: 12px 14px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: none;
-    }
-    .map-header strong { display: block; font-size: 13px; font-weight: 600; }
-    .map-header span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .map-wrap { position: relative; width: 100vw; height: 100vh; background: var(--paper); }
+    #map { display: block; width: 100%; height: 100%; }
+    .district { cursor: context-menu; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .2s ease, stroke .2s ease, opacity .2s ease; }
+    .district:hover { stroke: var(--ink); stroke-width: 2; filter: brightness(1.16); }
     .menu-toggle {
-      position: absolute;
-      z-index: 500;
-      top: 20px;
-      right: 20px;
-      padding: 10px 14px;
-      border: 1px solid var(--accent);
-      border-radius: 6px;
-      color: #0e0f0d;
-      background: var(--accent);
-      cursor: pointer;
-      font: 600 11px/1 Inter, Arial, sans-serif;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+      position: absolute; z-index: 10; top: 20px; right: 20px; padding: 10px 14px;
+      color: #0e0f0d; border-color: var(--accent); background: var(--accent);
     }
     .menu-toggle:hover, .menu-toggle:focus-visible { color: var(--ink); background: transparent; outline: none; }
-    .menu-toggle:active, .panel-toggle:active { transform: scale(.97); }
-    .leaflet-control-zoom a {
-      color: var(--ink) !important;
-      background: var(--panel) !important;
-      border-color: var(--line) !important;
+    .zoom-control { position: absolute; z-index: 10; bottom: 24px; left: 24px; display: grid; gap: 4px; }
+    .zoom-control button { width: 36px; height: 36px; color: var(--ink); font-size: 18px; }
+    .zoom-control button:hover, .zoom-control button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+    .hover-info { position: absolute; z-index: 10; bottom: 24px; left: 76px; color: var(--muted); font-size: 12px; pointer-events: none; }
+    .district-detail {
+      position: absolute; z-index: 11; left: 24px; bottom: 24px; width: 300px; padding: 18px;
+      border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--panel);
+      opacity: 0; transform: translateY(12px); pointer-events: none;
+      transition: opacity 180ms ease, transform 220ms cubic-bezier(.22, 1, .36, 1);
     }
-    .district-tooltip {
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      color: var(--ink);
-      background: var(--panel);
-      box-shadow: none;
-      font: 12px/1.45 Inter, Arial, sans-serif;
-    }
-    .district-tooltip b { display: block; margin-bottom: 2px; font-size: 14px; }
-    aside { transform: translateX(0); opacity: 1; transition: transform 220ms cubic-bezier(.22, 1, .36, 1), opacity 180ms ease; }
-    .panel-collapsed aside { overflow: hidden; border-left: 0; opacity: 0; pointer-events: none; transform: translateX(100%); }
-    @media (max-width: 800px) {
-      aside { width: min(360px, calc(100vw - 24px)); }
-      .map-wrap { height: 100vh; }
-      #map { min-height: 100vh; }
-      .map-header { top: 12px; left: 12px; }
-      .menu-toggle { top: 12px; right: 12px; }
-      aside { gap: 20px; padding: 24px 20px 18px; border-left: 1px solid var(--line); border-top: 0; }
+    .district-detail.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .detail-close { float: right; padding: 5px 7px; }
+    .detail-kicker { margin-bottom: 5px; color: var(--accent); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .district-detail h2 { margin: 0 0 12px; color: var(--ink); font-size: 28px; }
+    .detail-score { margin-bottom: 12px; font: 28px/1 Anton, Impact, sans-serif; }
+    .detail-grid { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
+    .detail-grid strong { color: var(--ink); font-weight: 500; }
+    .detail-cities { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .detail-cities strong { display: block; margin-bottom: 3px; color: var(--ink); font-weight: 500; }
+    @media (max-width: 700px) {
+      aside { width: min(360px, calc(100vw - 24px)); padding: 24px 20px 18px; }
       h1 { font-size: 36px; }
-      .panel-collapsed aside { display: flex; }
+      .menu-toggle { top: 12px; right: 12px; }
+      .zoom-control { bottom: 16px; left: 16px; }
+      .hover-info { bottom: 16px; left: 62px; }
+      .district-detail { right: 16px; bottom: 16px; left: 16px; width: auto; }
     }
   </style>
 </head>
 <body>
   <aside>
-    <div class="intro">
+    <div>
       <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span class="brand-name">Stormgauge</span><button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true">Ocultar</button></div>
       <h1>Risco de tempestades em Portugal</h1>
-      <p class="sub">Uma leitura por distrito dos avisos do IPMA e da previsão de vento e chuva para as próximas 24 horas</p>
-      <div class="storm" id="storm"><span class="sub">Tempestade em acompanhamento</span><br /><b id="stormName"></b></div>
-      <div class="status" id="status"></div>
+      <p class="sub">Passe o rato sobre um distrito. Clique com o botão direito para ampliar e ver o detalhe meteorológico.</p>
     </div>
     <section>
       <h2>Escala de risco</h2>
@@ -238,11 +105,23 @@
     </div>
   </aside>
   <main class="map-wrap">
-    <div class="map-header"><strong>Portugal continental</strong><span>Distritos coloridos pelo risco · linhas mostram os limites</span></div>
-    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">Menu</button>
-    <div id="map" role="application" aria-label="Mapa de risco de tempestades"></div>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">Fechar menu</button>
+    <svg id="map" role="application" aria-label="Mapa interativo de risco de tempestades em Portugal" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="zoom-control" aria-label="Zoom do mapa">
+      <button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
+      <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button>
+      <button id="zoomReset" type="button" aria-label="Ver Portugal inteiro">⌂</button>
+    </div>
+    <div class="hover-info" id="hoverInfo">Passe o rato sobre um distrito</div>
+    <section class="district-detail" id="districtDetail" aria-live="polite">
+      <button class="detail-close" id="detailClose" type="button" aria-label="Fechar detalhe">×</button>
+      <div class="detail-kicker">Distrito selecionado</div>
+      <h2 id="detailName"></h2>
+      <div class="detail-score" id="detailScore"></div>
+      <div class="detail-grid" id="detailWeather"></div>
+      <div class="detail-cities" id="detailCities"></div>
+    </section>
   </main>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

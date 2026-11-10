@@ -1,119 +1,172 @@
-/* Leaflet + GeoJSON + canvas wind field. Dynamic text uses textContent. */
+/* SVG map: no map library, only the real district geometry and live API data. */
 (() => {
-  const COLORS = {
-    low: '#4d806a',
-    moderate: '#c19b35',
-    high: '#c96855',
-    extreme: '#b63e55',
-  };
+  const COLORS = { low: '#4d806a', moderate: '#c19b35', high: '#c96855', extreme: '#c7465d' };
   const LABELS = { low: 'Baixo', moderate: 'Moderado', high: 'Alto', extreme: 'Extremo' };
+  const CITIES = {
+    AVR: 'Aveiro, Ílhavo e Ovar',
+    BJA: 'Beja, Moura e Serpa',
+    BRG: 'Braga, Guimarães e Barcelos',
+    BGC: 'Bragança, Mirandela e Macedo de Cavaleiros',
+    CBO: 'Castelo Branco, Covilhã e Fundão',
+    CBR: 'Coimbra, Figueira da Foz e Cantanhede',
+    EVR: 'Évora, Estremoz e Montemor-o-Novo',
+    FAR: 'Faro, Lagos e Portimão',
+    GDA: 'Guarda, Seia e Gouveia',
+    LRA: 'Leiria, Marinha Grande e Pombal',
+    LSB: 'Lisboa, Sintra e Cascais',
+    PTG: 'Portalegre, Elvas e Campo Maior',
+    PTO: 'Porto, Matosinhos e Vila Nova de Gaia',
+    STM: 'Santarém, Tomar e Abrantes',
+    STB: 'Setúbal, Almada e Sesimbra',
+    VCT: 'Viana do Castelo, Ponte de Lima e Valença',
+    VRL: 'Vila Real, Chaves e Peso da Régua',
+    VIS: 'Viseu, Lamego e Tondela',
+  };
   const params = new URLSearchParams(location.search);
   const key = params.get('key');
   const qs = key ? `?key=${encodeURIComponent(key)}` : '';
-  const map = L.map('map', { zoomControl: true, zoomSnap: 0.25 }).setView([39.6, -8.0], 6);
-  const el = (tag, cls, text) => {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text !== undefined) n.textContent = text;
-    return n;
+  const svg = document.getElementById('map');
+  const layers = new Map();
+  const el = (tag, text) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const html = (tag, text) => {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    return node;
   };
   const normalize = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
-  function tooltipFor(r) {
-    const box = el('div');
-    box.append(el('b', '', r.name), el('div', '', `Risco ${r.score}/100 · ${LABELS[r.level]}`));
-    const f = r.factors;
-    box.append(el('div', '', `Avisos ${f.warning} · Vento ${f.wind} · Chuva ${f.rain}`));
-    box.append(
-      el(
-        'div',
-        '',
-        r.hasWeather
-          ? `Rajada máx. ${r.gustKmh} km/h · ${r.precipMmH} mm/h · ${r.precip24hMm} mm/24h`
-          : 'Sem dados do modelo meteorológico',
-      ),
-    );
-    return box;
+  let features = [];
+  let latestRegions = [];
+  let geoBounds = [0, 0, 0, 0];
+  let fullView = { x: 0, y: 0, w: 1000, h: 760 };
+  let currentView = { ...fullView };
+  let animationId = 0;
+
+  function allCoordinates(geometry) {
+    return geometry.coordinates.flat(geometry.type === 'Polygon' ? 1 : 2);
   }
 
-  function styleFor(region) {
-    return {
-      color: region ? COLORS[region.level] : '#646b64',
-      fillColor: region ? COLORS[region.level] : '#1a1c19',
-      fillOpacity: region ? 0.42 + 0.25 * (region.score / 100) : 0.2,
-      weight: 1,
+  function project([lon, lat]) {
+    const [minLon, minLat, maxLon, maxLat] = geoBounds;
+    return [
+      40 + ((lon - minLon) / (maxLon - minLon)) * 920,
+      30 + ((maxLat - lat) / (maxLat - minLat)) * 700,
+    ];
+  }
+
+  function ringPath(ring) {
+    return `${ring.map((coord, index) => {
+      const [x, y] = project(coord);
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ')} Z`;
+  }
+
+  function geometryPath(geometry) {
+    const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+    return polygons.flatMap((polygon) => polygon.map(ringPath)).join(' ');
+  }
+
+  function featureBox(feature) {
+    const points = allCoordinates(feature.geometry).map(project);
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }
+
+  function setView(view) {
+    currentView = view;
+    svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+  }
+
+  function animateView(target) {
+    const start = { ...currentView };
+    const started = performance.now();
+    const id = ++animationId;
+    const frame = (now) => {
+      if (id !== animationId) return;
+      const progress = Math.min(1, (now - started) / 420);
+      const eased = 1 - (1 - progress) ** 3;
+      setView(Object.fromEntries(Object.keys(start).map((key) => [key, start[key] + (target[key] - start[key]) * eased])));
+      if (progress < 1) requestAnimationFrame(frame);
     };
+    requestAnimationFrame(frame);
   }
 
-  const districts = L.geoJSON(null, {
-    style: () => styleFor(null),
-    onEachFeature: (feature, layer) => {
-      layer._districtName = normalize(feature.properties?.Distrito ?? '');
-    },
-  }).addTo(map);
+  function zoomBy(factor) {
+    const w = Math.min(fullView.w, currentView.w * factor);
+    const h = Math.min(fullView.h, currentView.h * factor);
+    animateView({ x: currentView.x + (currentView.w - w) / 2, y: currentView.y + (currentView.h - h) / 2, w, h });
+  }
+
+  function updateDetail(region) {
+    document.getElementById('detailName').textContent = region.name;
+    document.getElementById('detailScore').textContent = `${region.score}/100 · ${LABELS[region.level]}`;
+    const weather = document.getElementById('detailWeather');
+    weather.replaceChildren();
+    const values = region.hasWeather
+      ? [`Rajada máxima: ${region.gustKmh} km/h`, `Chuva horária: ${region.precipMmH} mm`, `Chuva em 24 horas: ${region.precip24hMm} mm`]
+      : ['Dados meteorológicos indisponíveis'];
+    for (const value of values) weather.append(html('div', value));
+    const cities = document.getElementById('detailCities');
+    cities.replaceChildren(html('strong', 'Principais cidades'), html('span', CITIES[region.id] ?? region.name));
+    document.getElementById('districtDetail').classList.add('is-visible');
+  }
+
+  function renderMap(regions) {
+    latestRegions = regions;
+    if (features.length === 0) return;
+    const byName = new Map(regions.map((region) => [normalize(region.name), region]));
+    for (const feature of features) {
+      const region = byName.get(normalize(feature.properties?.Distrito ?? ''));
+      const path = layers.get(feature);
+      if (!path || !region) continue;
+      path.setAttribute('fill', COLORS[region.level]);
+      path.setAttribute('fill-opacity', String(0.5 + region.score / 400));
+      path.replaceChildren(el('title', `${region.name} — ${region.score}/100`));
+      path.onmouseenter = () => {
+        document.getElementById('hoverInfo').textContent = `${region.name} · ${region.score}/100 · ${LABELS[region.level]}`;
+      };
+      path.onmouseleave = () => {
+        document.getElementById('hoverInfo').textContent = 'Passe o rato sobre um distrito';
+      };
+      path.oncontextmenu = (event) => {
+        event.preventDefault();
+        const box = featureBox(feature);
+        const padding = 28;
+        updateDetail(region);
+        animateView({ x: box.x - padding, y: box.y - padding, w: box.w + padding * 2, h: box.h + padding * 2 });
+      };
+    }
+  }
+
+  function renderFeatures(geojson) {
+    features = geojson.features;
+    const coords = features.flatMap((feature) => allCoordinates(feature.geometry));
+    const lons = coords.map(([lon]) => lon);
+    const lats = coords.map(([, lat]) => lat);
+    geoBounds = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+    for (const feature of features) {
+      const path = el('path');
+      path.classList.add('district');
+      path.setAttribute('d', geometryPath(feature.geometry));
+      path.setAttribute('fill', '#242720');
+      layers.set(feature, path);
+      svg.append(path);
+    }
+    renderMap(latestRegions);
+  }
 
   async function loadDistricts() {
     const response = await fetch('data/portugal-districts-simplified.geojson');
     if (!response.ok) throw new Error(`GeoJSON HTTP ${response.status}`);
-    const geojson = await response.json();
-    districts.addData(geojson);
-    const bounds = districts.getBounds();
-    map.fitBounds(bounds, { padding: [28, 28] });
-    map.setMaxBounds(bounds.pad(0.12));
-    if (currentRegions.length > 0) renderMap(currentRegions);
+    renderFeatures(await response.json());
   }
 
-  let latestRegions = [];
-  function renderMap(regions) {
-    latestRegions = regions;
-    if (districts.getLayers().length === 0) return;
-    const byName = new Map(regions.map((region) => [normalize(region.name), region]));
-    districts.eachLayer((layer) => {
-      const region = byName.get(layer._districtName);
-      if (region) {
-        layer.setStyle(styleFor(region));
-        layer.bindTooltip(tooltipFor(region), { sticky: true, direction: 'top', className: 'district-tooltip' });
-      }
-    });
-  }
-
-  function pill(text, cls) {
-    return el('span', `pill ${cls}`, text);
-  }
-
-  function renderStatus(snapshot, connected) {
-    const box = document.getElementById('status');
-    box.replaceChildren(pill(connected ? 'Dados atualizados' : 'Sem ligação', connected ? 'ok' : 'bad'));
-    if (!snapshot) return;
-    const cls = (state) => (state === 'ok' ? 'ok' : state === 'pending' ? 'warn' : state === 'stale' ? 'warn' : 'bad');
-    box.append(
-      pill(`IPMA: ${snapshot.sources.ipma.state}`, cls(snapshot.sources.ipma.state)),
-      pill(`Modelo: ${snapshot.sources.weather.state}`, cls(snapshot.sources.weather.state)),
-      pill(`Atualizado ${new Date(snapshot.generatedAt).toLocaleTimeString('pt-PT')}`, ''),
-    );
-    if (snapshot.mode === 'mock') box.append(pill('Simulação', 'warn'));
-  }
-
-  function setPanel(open) {
-    document.body.classList.toggle('panel-collapsed', !open);
-    document.getElementById('panelToggle').textContent = open ? 'Ocultar' : 'Abrir';
-    document.getElementById('panelToggle').setAttribute('aria-expanded', String(open));
-    document.getElementById('menuToggle').textContent = open ? 'Fechar menu' : 'Menu';
-    document.getElementById('menuToggle').setAttribute('aria-expanded', String(open));
-    window.setTimeout(() => map.invalidateSize(), 180);
-  }
-  document.getElementById('panelToggle').addEventListener('click', () => setPanel(false));
-  document.getElementById('menuToggle').addEventListener('click', () => {
-    setPanel(document.body.classList.contains('panel-collapsed'));
-  });
-
-  let last = null;
   function apply(snapshot) {
-    last = snapshot;
     renderMap(snapshot.regions);
-    renderStatus(snapshot, true);
-    const storm = document.getElementById('storm');
-    storm.classList.toggle('on', Boolean(snapshot.stormName));
-    document.getElementById('stormName').textContent = snapshot.stormName ?? '';
   }
 
   async function refresh() {
@@ -122,12 +175,26 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       apply(await response.json());
     } catch {
-      renderStatus(last, false);
+      // The map keeps the last valid snapshot while the next three-second poll retries.
     }
   }
 
-  void loadDistricts().catch(() => renderStatus(last, false));
+  document.getElementById('panelToggle').addEventListener('click', () => {
+    document.body.classList.add('panel-collapsed');
+    document.getElementById('menuToggle').textContent = 'Abrir menu';
+    document.getElementById('menuToggle').setAttribute('aria-expanded', 'false');
+  });
+  document.getElementById('menuToggle').addEventListener('click', (event) => {
+    const open = document.body.classList.toggle('panel-collapsed') === false;
+    event.currentTarget.textContent = open ? 'Fechar menu' : 'Abrir menu';
+    event.currentTarget.setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('zoomIn').addEventListener('click', () => zoomBy(0.8));
+  document.getElementById('zoomOut').addEventListener('click', () => zoomBy(1.25));
+  document.getElementById('zoomReset').addEventListener('click', () => animateView(fullView));
+  document.getElementById('detailClose').addEventListener('click', () => document.getElementById('districtDetail').classList.remove('is-visible'));
+
+  void loadDistricts();
   void refresh();
   window.setInterval(refresh, 3_000);
-  renderStatus(null, false);
 })();
